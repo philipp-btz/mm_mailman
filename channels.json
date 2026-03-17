@@ -1,0 +1,15 @@
+{
+  "groups": {
+    "all-dev": ["dev-general", "alerts", "deployments"],
+    "marketing": ["announcements", "social-media"]
+  },
+  "whitelist": [
+    "town-square",
+    "general",
+    "dev-general",
+    "alerts",
+    "deployments",
+    "announcements",
+    "social-media"
+  ]
+}

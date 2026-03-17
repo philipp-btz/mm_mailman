@@ -1,0 +1,4 @@
+mattermostdriver
+fastapi
+uvicorn
+python-dotenv
