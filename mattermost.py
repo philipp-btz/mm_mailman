@@ -15,6 +15,7 @@ def initialize_driver():
     print("Connecting to Mattermost...")
     driver.login()
     bot_info["bot_id"] = driver.users.get_user('me')['id']
+    bot_info["bot_username"] = driver.users.get_user('me')['username']
     
     try:
         bot_info["team_id"] = driver.teams.get_team_by_name(TEAM_NAME)['id']

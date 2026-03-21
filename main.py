@@ -28,18 +28,19 @@ def handle_new_user(sender_id, dm_channel_id):
         'channel_id': dm_channel_id,
         'message': (
             "👋 **Welcome to the Broadcast Bot!**\n\n"
-            "To send a broadcast, just send me the message you want to share. "
+            "To send a broadcast, just send me the message you want to share (you can attach files too!). "
             "I will then ask you to specify the target channels or groups.\n\n"
             "Your message will *not* be sent until you confirm.\n\n"
-            "**TYPE YOUR MESSAGE NOW:**"
+            "**TYPE YOUR MESSAGE AND/OR ATTACH FILES NOW:**"
         )
     })
 
-def handle_new_session(sender_id, dm_channel_id, text):
-    """Starts a new broadcast session with the user's message."""
+def handle_new_session(sender_id, dm_channel_id, text, file_ids):
+    """Starts a new broadcast session with the user's message and files."""
     sessions[sender_id] = {
         "state": "AWAITING_CHANNELS",
         "message": text,
+        "file_ids": file_ids,
         "timestamp": time.time(),
         "dm_channel_id": dm_channel_id
     }
@@ -54,10 +55,12 @@ def handle_new_session(sender_id, dm_channel_id, text):
             allowed_channels.append(f"- `(ID not found)` (`{channel_id}`)")
     allowed_channels.sort()
 
+    file_notice = "\n_You have attached {} file(s)._".format(len(file_ids)) if file_ids else ""
     driver.posts.create_post({
         'channel_id': dm_channel_id,
         'message': (
-            f"I've captured your message. Reply with the **channel names** or **groups** you want to send it to, separated by commas.\n\n"
+            f"I've captured your message.{file_notice}\n\n"
+            f"Reply with the **channel names** or **groups** you want to send it to, separated by commas.\n\n"
             f"**Available Groups:** {group_list}\n\n"
             f"**Available Channels:**\n"
             f"{'\n'.join(allowed_channels)}"
@@ -75,15 +78,16 @@ def handle_channel_selection(session, text, dm_channel_id):
 
     session.update({
         "target_ids": valid_ids,
-        "valid_names": valid_names, # Store names for logging
+        "valid_names": valid_names,
         "state": "CONFIRMATION",
         "timestamp": time.time()
     })
 
+    file_notice = "\n**Files Attached:** {}".format(len(session.get('file_ids', []))) if session.get('file_ids') else ""
     warning_text = f"\n⚠️ *Ignored invalid inputs: {', '.join(invalid_names)}*" if invalid_names else ""
     preview_text = (
-        f"**Preview:**\n> {session['message']}\n\n"
-        f"**Targets:** {', '.join(valid_names)}{warning_text}\n\n"
+        f"**Preview:**\n{session['message']}\n\n"
+        f"**Targets:** {', '.join(valid_names)}{file_notice}{warning_text}\n\n"
         "Reply with **yes** to send or **no** to cancel."
     )
     driver.posts.create_post({'channel_id': dm_channel_id, 'message': preview_text})
@@ -91,22 +95,28 @@ def handle_channel_selection(session, text, dm_channel_id):
 def handle_confirmation(user_id, session, text, sender_name, dm_channel_id):
     """Handles the final 'yes' or 'no' confirmation and ends the session."""
     if text.lower() == 'yes':
+        post_data = {
+            'message': f"📢 **Message from @{sender_name}**\n \n \n{session['message']}\n \n \n \n*--- END of Message ---*\n*If YOU want to use the services of me (@{bot_info["bot_username"]}) just DM me*",
+            'file_ids': session.get('file_ids', [])
+        }
+        
         for channel_id in session['target_ids']:
             try:
-                driver.posts.create_post({
-                    'channel_id': channel_id,
-                    'message': f"📢 **Broadcast from @{sender_name}**\n\n> {session['message']}"
-                })
+                driver.posts.create_post({'channel_id': channel_id, **post_data})
             except Exception as e:
                 print(f"Failed to post to {channel_id}: {e}")
         
         log_broadcast(
             sender_name=sender_name,
             message_content=session['message'],
-            target_channels=session['valid_names']
+            target_channels=session['valid_names'],
+            file_ids=session.get('file_ids')
         )
         
-        driver.posts.create_post({'channel_id': dm_channel_id, 'message': "✅ **Broadcast sent successfully.**"})
+        driver.posts.create_post({
+            'channel_id': dm_channel_id,
+            'message': "✅ **Broadcast sent successfully.**\n\nThank you for using the Broadcast Bot!\n\n\n**If You want to send another Broadcast, SEND THE MESSAGE AND/OR ATTACH FILES NOW:**\nIf not, just do nothing :voigls:"
+        })
     
     elif text.lower() == 'no':
         driver.posts.create_post({'channel_id': dm_channel_id, 'message': "❌ **Broadcast canceled.**"})
@@ -138,12 +148,15 @@ async def message_handler(message):
     sender_id = post.get('user_id')
     dm_channel_id = post.get('channel_id')
     text = post.get('message', '').strip()
+    file_ids = post.get('file_ids', [])
     sender_name = data.get('sender_name', '').strip('@')
 
-    if not all([sender_id, dm_channel_id, text, sender_name]) or sender_id == bot_info.get("bot_id"):
+    if not all([sender_id, dm_channel_id, sender_name]) or sender_id == bot_info.get("bot_id"):
+        return
+    
+    if not text and not file_ids: # Ignore messages with no content
         return
 
-    # Always prioritize the !id! command
     if text.lower().startswith('!id!'):
         channel_name = text[5:].strip()
         if channel_name:
@@ -152,7 +165,6 @@ async def message_handler(message):
             driver.posts.create_post({'channel_id': dm_channel_id, 'message': "Please provide a channel name after `!id!`."})
         return
 
-    # Now, handle the conversational flow
     if sender_id not in known_users:
         handle_new_user(sender_id, dm_channel_id)
         return
@@ -160,7 +172,7 @@ async def message_handler(message):
     session = sessions.get(sender_id)
     
     if not session:
-        handle_new_session(sender_id, dm_channel_id, text)
+        handle_new_session(sender_id, dm_channel_id, text, file_ids)
     elif session.get("state") == "AWAITING_CHANNELS":
         handle_channel_selection(session, text, dm_channel_id)
     elif session.get("state") == "CONFIRMATION":
