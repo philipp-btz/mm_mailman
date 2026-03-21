@@ -16,6 +16,7 @@ requests==2.32.5
 starlette==0.52.1
 typing-extensions==4.15.0
 typing-inspection==0.4.2
+unicorn==2.1.4
 urllib3==2.6.3
 uvicorn==0.42.0
 websockets==16.0
