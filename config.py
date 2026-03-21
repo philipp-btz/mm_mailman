@@ -16,9 +16,9 @@ with open('channels.json', 'r') as f:
 
 # Public groups to be shown to the user
 VISIBLE_CHANNEL_GROUPS = channel_data.get('groups', {})
-SECRET_CHANNEL_GROUPS = channel_data.get('secret_groups', {})
+PRIVATE_CHANNEL_GROUPS = channel_data.get('private_groups', {})
 
 # Merge both for internal use
-CHANNEL_GROUPS = {**VISIBLE_CHANNEL_GROUPS, **SECRET_CHANNEL_GROUPS}
+CHANNEL_GROUPS = {**VISIBLE_CHANNEL_GROUPS, **PRIVATE_CHANNEL_GROUPS}
 
 WHITELIST = set(channel_data.get('whitelist', []))
