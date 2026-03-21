@@ -4,7 +4,7 @@ import asyncio
 import threading
 
 from patches import apply_ssl_patch
-from config import WHITELIST, VISIBLE_CHANNEL_GROUPS, SESSION_TIMEOUT_SECONDS, CLEANUP_INTERVAL_SECONDS
+from config import WHITELIST, VISIBLE_CHANNEL_GROUPS,PRIVATE_CHANNEL_GROUPS, SESSION_TIMEOUT_SECONDS, CLEANUP_INTERVAL_SECONDS
 from state import sessions, known_users, bot_info
 from mattermost import driver, initialize_driver, resolve_targets
 from database import initialize_database, log_broadcast, close_db_connection
@@ -40,7 +40,16 @@ async def message_handler(message):
     if not text and not file_ids: # Ignore messages with no content
         return
 
-    if text.lower().startswith('!id!'):
+    if text.lower().startswith('!help!'):
+        message = ("**Here are my Commands:** \n"
+                   "!id! <channel> : return channel id for <channel> \n"
+                   "!channels!: list all channels the bot has access to \n"
+                   "!_get_groups!: list all available groups and their channels\n"
+                   "!_get_private_groups!: same as above but with private groups\n"
+                   "!_add_group!: WORK IN PROGRESS, add custom defined group to global groups"
+                   )
+        driver.posts.create_post({'channel_id': dm_channel_id, 'message': message})
+    elif text.lower().startswith('!id!'):
         channel_name = text[5:].strip()
         if channel_name:
             h.handle_id_lookup(channel_name, dm_channel_id)
@@ -59,6 +68,65 @@ async def message_handler(message):
 
                 print(f"ID: {channel['id']} | Name: {channel['display_name']} ({channel['name']})")
         message = "\n".join(lines)
+        driver.posts.create_post({'channel_id': dm_channel_id, 'message': message})
+    elif text.lower().startswith("!_get_private_groups!"):
+        lines = []
+        for name, list in PRIVATE_CHANNEL_GROUPS.items():
+            lines.append(f"{name}: {[driver.channels.get_channel(i)["name"] for i in list]}\n \n")
+        message = f"{'\n'.join(lines)}"
+        driver.posts.create_post({'channel_id': dm_channel_id, 'message': message})
+    elif text.lower().startswith("!_get_groups!"):
+        lines = []
+        for name, list in VISIBLE_CHANNEL_GROUPS.items():
+            lines.append(f"{name}: {[driver.channels.get_channel(i)["name"] for i in list]}\n \n")
+        message = f"{'\n'.join(lines)}"
+        driver.posts.create_post({'channel_id': dm_channel_id, 'message': message})
+    elif text.lower().startswith("!_add_group!"):
+        incoming_message = text[12:].strip()
+        # 1. Check if the user actually provided payload data
+        if not incoming_message:
+            driver.posts.create_post({'channel_id': dm_channel_id, 'message': '❌ Please provide a JSON string. Example: `!_add_group! {"NewGroup": ["id1", "id2"]}`'})
+            return
+        try:
+            # 2. Attempt to parse the JSON
+            new_groups_dict = json.loads(incoming_message)
+            # 3. Validate that the parsed JSON is actually a dictionary
+            if not isinstance(new_groups_dict, dict):
+                raise ValueError("Input must be a JSON object (dictionary).")
+
+            print(f"new_groups_dict: {new_groups_dict}")
+
+            # 4. Integrate the new group into your global state (assuming VISIBLE_CHANNEL_GROUPS)
+            VISIBLE_CHANNEL_GROUPS.update(new_groups_dict)
+            data = json.load("channels.json")
+            data["groups"]=VISIBLE_CHANNEL_GROUPS
+            with open("channels.json", "w") as f:
+                json.dump(data, f, indent=4)
+
+            driver.posts.create_post({
+                'channel_id': dm_channel_id,
+                'message': '✅ Group added successfully!'
+            })
+
+        except json.JSONDecodeError:
+            driver.posts.create_post({
+                'channel_id': dm_channel_id,
+                'message': '❌ Invalid JSON format. Please check your syntax.'
+            })
+        except ValueError as e:
+            driver.posts.create_post({
+                'channel_id': dm_channel_id,
+                'message': f'❌ {e}'
+            })
+        except Exception as e:
+            # Catch-all for unexpected parsing or assignment issues
+            driver.posts.create_post({
+                'channel_id': dm_channel_id,
+                'message': f'❌ An unexpected error occurred: {e}'
+            })
+
+
+        message = "finished"
         driver.posts.create_post({'channel_id': dm_channel_id, 'message': message})
     else:
         if sender_id not in known_users:

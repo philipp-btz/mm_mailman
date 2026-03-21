@@ -50,7 +50,7 @@ def handle_new_session(sender_id, dm_channel_id, text, file_ids):
     for channel_id in WHITELIST:
         try:
             channel_info = driver.channels.get_channel(channel_id)
-            allowed_channels.append(f"- `{channel_info['display_name']}` (`{channel_id}`)")
+            allowed_channels.append(f"- `{channel_info["name"]}`    (`{channel_info["display_name"]}`- `{channel_id}`)")
         except Exception:
             allowed_channels.append(f"- `(ID not found)` (`{channel_id}`)")
     allowed_channels.sort()
