@@ -158,3 +158,67 @@ def handle_confirmation(user_id, session, text, sender_name, dm_channel_id):
         return
 
     del sessions[user_id]
+
+
+def handle_add_group(text, dm_channel_id):
+    incoming_message = text[12:].strip()
+    # 1. Check if the user actually provided payload data
+    if not incoming_message:
+        driver.posts.create_post({
+                                     'channel_id': dm_channel_id,
+                                     'message': '❌ Please provide a JSON string. Example: `!_add_group! {"NewGroup": ["id1", "id2"]}`'
+                                 })
+        return
+    try:
+        # 2. Attempt to parse the JSON
+        new_groups_dict = json.loads(incoming_message)
+        print(f"new_groups_dict pre cleaning: {new_groups_dict}")
+        # 3. Validate that the parsed JSON is actually a dictionary
+        if not isinstance(new_groups_dict, dict):
+            raise ValueError("Input must be a JSON object (dictionary).")
+        for key, list in new_groups_dict.copy().items():
+            print(f"list {list}")
+            for id in list.copy():
+                print(f"id {id}")
+                try:
+                    driver.channels.get_channel(id)
+                except Exception as e:
+                    list.remove(id)
+                    print(f"popped {id}")
+            if len(list) == 0:
+                new_groups_dict.pop(key)
+                print(f"removed {key}")
+                print(f"dict: {new_groups_dict}")
+
+        print(f"new_groups_dict after cleaning: {new_groups_dict}")
+
+        # 4. Integrate the new group into your global state (assuming VISIBLE_CHANNEL_GROUPS)
+        VISIBLE_CHANNEL_GROUPS.update(new_groups_dict)
+        print("updated")
+
+        with open("channels.json", "r") as f:
+            data = json.load(f)
+        print("loaded")
+
+        data["groups"] = VISIBLE_CHANNEL_GROUPS
+        with open("channels.json", "w") as f:
+            json.dump(data, f, indent=4)
+
+        print("written")
+        driver.posts.create_post({
+            'channel_id': dm_channel_id,
+            'message': '✅ Group added successfully!'
+        })
+        print("done")
+
+    except json.JSONDecodeError:
+        driver.posts.create_post({
+            'channel_id': dm_channel_id, 'message': '❌ Invalid JSON format. Please check your syntax.'
+        })
+    except ValueError as e:
+        driver.posts.create_post({
+            'channel_id': dm_channel_id, 'message': f'❌ {e}'
+        })
+    except Exception as e:
+        # Catch-all for unexpected parsing or assignment issues
+        driver.posts.create_post({'channel_id': dm_channel_id, 'message': f'❌ An unexpected error occurred: {e}'})
