@@ -46,7 +46,6 @@ def handle_new_session(sender_id, dm_channel_id, text, file_ids):
     group_list = ", ".join(VISIBLE_CHANNEL_GROUPS.keys())
 
     allowed_channels = []
-    allowed_channels_patch = {} #TODO match channel IDs to names
     for channel_id in WHITELIST:
         try:
             channel_info = driver.channels.get_channel(channel_id)
