@@ -1,0 +1,28 @@
+name: Auto-Format Python
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    # Grant permission to write the fixed code back to the repo
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Ruff
+        run: pip install ruff
+
+      - name: Check and Fix Formatting
+        # --fix tells Ruff to repair what it can automatically
+        run: ruff check --fix . && ruff format .
+
+      - name: Commit changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "style: auto-format python code with ruff"
