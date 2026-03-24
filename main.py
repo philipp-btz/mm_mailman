@@ -4,7 +4,7 @@ import asyncio
 import threading
 
 from patches import apply_ssl_patch
-from config import WHITELIST, VISIBLE_CHANNEL_GROUPS,PRIVATE_CHANNEL_GROUPS, SESSION_TIMEOUT_SECONDS
+from config import WHITELIST, VISIBLE_CHANNEL_GROUPS,PRIVATE_CHANNEL_GROUPS, SESSION_TIMEOUT_SECONDS, CLEANUP_INTERVAL_SECONDS
 from state import sessions, known_users, bot_info
 from mattermost import driver, initialize_driver
 from database import initialize_database, close_db_connection
