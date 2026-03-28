@@ -23,6 +23,7 @@ bot_id = driver.users.get_user("me")["id"]
 bot_username = driver.users.get_user("me")["username"]
 team_id = driver.teams.get_team_by_name(TEAM_NAME)["id"]
 
+channel_id = driver.channels.get_channel_by_name_and_team_name(TEAM_NAME, "Bot Status")
 
 print(f"Bot connected. Bot ID: {bot_id} | Team ID: {team_id}")
 
