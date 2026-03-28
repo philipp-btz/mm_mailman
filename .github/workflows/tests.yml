@@ -62,7 +62,7 @@ jobs:
           python3 ./tests/success_message.py \
             "${{ secrets.MATTERMOST_URL }}" \
             "${{ secrets.MATTERMOST_TOKEN }}" \
-            "Testing" \
+            "$TEAM_NAME" \
             "${{ github.ref_name }}" \
             "${{ github.actor }}" \
             "$SHORT_SHA" \
