@@ -33,6 +33,4 @@ jobs:
 
       - name: try to send Mattermost message
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-        run: |
-          echo ${{ secrets.MATTERMOST_URL }}
-          echo ${{ secrets.MATTERMOST_TOKEN }}
+        run: python3 ./tests/success_message.py ${{ secrets.MATTERMOST_URL }} ${{ secrets.MATTERMOST_TOKEN }} Testing
