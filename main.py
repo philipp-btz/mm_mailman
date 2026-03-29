@@ -49,18 +49,7 @@ async def message_handler(message):
     if not text and not file_ids:  # Ignore messages with no content
         return
 
-    if (
-        text.lower().startswith("!help")
-        or text.lower().startswith("help")
-        or text.lower().startswith(
-            "!help!",
-        )
-        or text.lower().startswith("help!")
-        or text.lower().startswith(
-            "-- help",
-        )
-        or text.lower().startswith("man")
-    ):
+    if text.lower().startswith(("help", "!help", "--help", "man")):
         message = (
             "### Usage\n"
             "**DM me with the message you want delivered, I'll guide you through the process**\n \n "
@@ -73,6 +62,7 @@ async def message_handler(message):
             "!add_private_group <json dict> : add private group(s) scheme: same as for public groups"
         )
         driver.posts.create_post({"channel_id": dm_channel_id, "message": message})
+
     elif text.lower().startswith("!id"):
         channel_name = text.strip().lstrip("!id").strip()
         if channel_name:
