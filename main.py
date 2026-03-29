@@ -50,19 +50,7 @@ async def message_handler(message):
         return
 
     if text.lower().startswith(("help", "!help", "--help", "man")):
-        message = (
-            "### Usage\n"
-            "**DM me with the message you want delivered, I'll guide you through the process**\n \n "
-            "**Other Commands:** \n"
-            "!id <channel> : return channel id for <channel> the name must **NOT** be the display_name\n"
-            "!channels : list all channels the bot has access to \n"
-            "!get_groups : list all available groups and their channels\n"
-            "!get_private_groups : same as above but with private groups\n"
-            '!add_group <json dict> : add public group(s) scheme: {"name1" : ["id1", "id2", ...], "name2" : ["id1", "id2", ...]}\n'
-            "!add_private_group <json dict> : add private group(s) scheme: same as for public groups"
-        )
-        driver.posts.create_post({"channel_id": dm_channel_id, "message": message})
-
+        driver.posts.create_post({"channel_id": dm_channel_id, "message": config.help_message})
     elif text.lower().startswith("!id"):
         channel_name = text.strip().lstrip("!id").strip()
         if channel_name:
