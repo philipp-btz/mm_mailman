@@ -4,12 +4,7 @@ import threading
 import time
 
 import handlers as h
-from config import (
-    CLEANUP_INTERVAL_SECONDS,
-    PRIVATE_CHANNEL_GROUPS,
-    SESSION_TIMEOUT_SECONDS,
-    VISIBLE_CHANNEL_GROUPS,
-)
+import config
 from database import close_db_connection, initialize_database
 from mattermost import driver, initialize_driver
 from patches import apply_ssl_patch
@@ -41,9 +36,7 @@ async def message_handler(message):
     file_ids = post.get("file_ids", [])
     sender_name = data.get("sender_name", "").strip("@")
 
-    if not all([sender_id, dm_channel_id, sender_name]) or sender_id == bot_info.get(
-        "bot_id"
-    ):
+    if not all([sender_id, dm_channel_id, sender_name]) or sender_id == bot_info.get("bot_id"):
         return
 
     if not text and not file_ids:  # Ignore messages with no content
@@ -67,18 +60,18 @@ async def message_handler(message):
         h.handle_channels_command(dm_channel_id)
     elif text.lower().startswith("!get_private_groups"):
         lines = []
-        for name, list in PRIVATE_CHANNEL_GROUPS.items():
+        for name, channel_list in config.PRIVATE_CHANNEL_GROUPS.items():
             lines.append(
-                f"{name}: {[driver.channels.get_channel(i)['name'] for i in list]}\n \n"
+                f"{name}: {[driver.channels.get_channel(i)['name'] for i in channel_list]}\n \n"
             )
         message = "\n".join(lines)
         driver.posts.create_post({"channel_id": dm_channel_id, "message": message})
     elif text.lower().startswith("!get_groups"):
         lines = []
-        for name, list in VISIBLE_CHANNEL_GROUPS.items():
+        for name, channel_list in config.VISIBLE_CHANNEL_GROUPS.items():
             try:
                 lines.append(
-                    f"{name}: {[driver.channels.get_channel(i)['name'] for i in list]}\n \n"
+                    f"{name}: {[driver.channels.get_channel(i)['name'] for i in channel_list]}\n \n"
                 )
             except Exception:
                 lines.append(f"{name}: [ID not found]\n \n")
@@ -92,15 +85,15 @@ async def message_handler(message):
         if sender_id not in known_users:
             h.handle_new_user(sender_id, dm_channel_id)
             return
-
         session = sessions.get(sender_id)
-
         if not session:
             h.handle_new_session(sender_id, dm_channel_id, text, file_ids)
         elif session.get("state") == "AWAITING_CHANNELS":
             h.handle_channel_selection(session, text, dm_channel_id)
         elif session.get("state") == "CONFIRMATION":
             h.handle_confirmation(sender_id, session, text, sender_name, dm_channel_id)
+        else:
+            pass
 
 
 # --- Background Tasks ---
@@ -109,12 +102,12 @@ async def message_handler(message):
 async def session_cleanup_task():
     """Periodically cleans up expired user sessions."""
     while True:
-        await asyncio.sleep(CLEANUP_INTERVAL_SECONDS)
+        await asyncio.sleep(config.CLEANUP_INTERVAL_SECONDS)
         current_time = time.time()
         expired_users = [
             uid
             for uid, sess in sessions.items()
-            if current_time - sess["timestamp"] > SESSION_TIMEOUT_SECONDS
+            if current_time - sess["timestamp"] > config.SESSION_TIMEOUT_SECONDS
         ]
 
         for user_id in expired_users:

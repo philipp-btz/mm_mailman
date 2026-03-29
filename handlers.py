@@ -43,7 +43,7 @@ def handle_new_user(sender_id, dm_channel_id):
         {
             "channel_id": dm_channel_id,
             "message": (
-                "👋 **Welcome, I'm the Mailman**\n\n"
+                "👋 **Welcome, I'm the Postbot**\n\n"
                 "To send a broadcast, just send me the message you want to share (you can attach files too!). "
                 "I will then ask you to specify the target channels or groups.\n\n"
                 "Your message will *not* be sent until you confirm.\n\n"
@@ -69,6 +69,7 @@ def handle_new_session(sender_id, dm_channel_id, text, file_ids):
             channel_info = driver.channels.get_channel(channel_id)
             if channel_info['team_id']:
                 team_name = driver.teams.get_team(channel_info['team_id']).get("display_name", "N/A")
+                print(f"team_name: {team_name}, display_name: {channel_info['display_name']}, name: {channel_info['name']}")
                 allowed_channels.append(
                     f"- name: `{channel_info['name']}`    (display_name `{channel_info['display_name']}`- ID `{channel_id}` - Team name: `{team_name}`)"
                 )
@@ -166,6 +167,7 @@ def handle_confirmation(user_id, session, text, sender_name, dm_channel_id):
             except Exception as e:
                 print(f"Failed to fetch file {original_id}: {e}")
         print(f"files.keys(): {files.keys()}")
+        file_ids = []
         for channel_id in session["target_ids"]:
             file_ids = []
             # upload file to channel:
@@ -200,7 +202,7 @@ def handle_confirmation(user_id, session, text, sender_name, dm_channel_id):
                 "message": "✅ **Broadcast sent successfully.**\n\n"
                 "Thank you for using the Broadcast Bot!\n\n\n"
                 "**If You want to send another Broadcast, SEND THE MESSAGE AND/OR ATTACH FILES NOW:**\n"
-                "If not, just do nothing :voigls:",
+                "If not, just do nothing :feuervoigl:",
             }
         )
 
