@@ -44,15 +44,16 @@ def handle_new_session(sender_id, dm_channel_id, text, file_ids):
         "timestamp": time.time(),
         "dm_channel_id": dm_channel_id,
     }
-    group_list = ", ".join(VISIBLE_CHANNEL_GROUPS.keys())
 
     allowed_channels = []
     for channel_id in WHITELIST:
         try:
             channel_info = driver.channels.get_channel(channel_id)
-            allowed_channels.append(
-                f"- `{channel_info['name']}`    (`{channel_info['display_name']}`- `{channel_id}`)"
-            )
+            if channel_info['team_id']:
+                team_name = driver.teams.get_team(channel_info['team_id']).get("display_name", "N/A")
+                allowed_channels.append(
+                    f"- name: `{channel_info['name']}`    (display_name `{channel_info['display_name']}`- ID `{channel_id}` - Team name: `{team_name}`)"
+                )
         except Exception:
             allowed_channels.append(f"- `(ID not found)` (`{channel_id}`)")
     allowed_channels.sort()
@@ -60,13 +61,19 @@ def handle_new_session(sender_id, dm_channel_id, text, file_ids):
     file_notice = (
         "\n_You have attached {} file(s)._".format(len(file_ids)) if file_ids else ""
     )
+
+    group_str: str = ""
+    for group in VISIBLE_CHANNEL_GROUPS.keys():
+        group_str += f"- `{group}`\n"
+
     driver.posts.create_post(
         {
             "channel_id": dm_channel_id,
             "message": (
-                f"I've captured your message.{file_notice}\n\n"
+                f"I've captured your message.{file_notice}\n  \n"
                 f"Reply with the **channel names** or **groups** you want to send it to, separated by commas.\n\n"
-                f"**Available Groups:** {group_list}\n\n"
+                f"### **Available Groups:** \n"
+                f"{group_str}"
                 f"**Available Channels:**\n"
                 f"{'\n'.join(allowed_channels)}"
             ),

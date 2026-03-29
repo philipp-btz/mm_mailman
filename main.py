@@ -87,15 +87,18 @@ async def message_handler(message):
         return
     elif text.lower().startswith("!channels"):
         lines = []
-        teams = driver.teams.get_user_teams("me")
+        mm_teams = driver.teams.get_user_teams("me")
         # 2. Iterate through teams and fetch the associated channels
-        for team in teams:
+        for team in mm_teams:
             channels = driver.channels.get_channels_for_user("me", team["id"])
-            for channel in channels:
+            for channel in channels[:10:]:
                 # display_name is the UI name, name is the system URL name
-                lines.append(
-                    f"{channel['display_name']} ({channel['name']}) | ID: {channel['id']}"
-                )
+                if channel['team_id']:
+                    team_name = driver.teams.get_team(channel['team_id']).get("display_name", "N/A")
+
+                    lines.append(
+                        f"- {channel['display_name']} ({channel['name']}) | ID: {channel['id']} Team name: {team_name} \n "
+                    )
 
         message = "\n".join(lines)
         driver.posts.create_post({"channel_id": dm_channel_id, "message": message})
