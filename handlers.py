@@ -171,19 +171,19 @@ def handle_confirmation(user_id, session, text, sender_name, dm_channel_id):
         for channel_id in session["target_ids"]:
             file_ids = []
             # upload file to channel:
-            for id, content in files.items():
+            for filename, content in files.items():
                 try:
                     file_info = driver.files.upload_file(
-                        channel_id=channel_id, files={"files": (id, content)}
+                        channel_id=channel_id, files={"files": (filename, content)}
                     )
                     print(f"File uploaded successfully: {file_info}")
                     print(file_ids.append(file_info["file_infos"][0]["id"]))
                 except Exception as e:
                     print(f"Failed to upload file to {channel_id}: {e}")
             try:
-                post_options = {"channel_id": channel_id}
-                post_options["message"] = message
-                post_options["file_ids"] = file_ids
+                post_options: dict[str, str | list[str]] = {"channel_id": channel_id,
+                                "message": message,
+                                "file_ids": file_ids}
 
                 driver.posts.create_post(post_options)
             except Exception as e:
@@ -249,16 +249,16 @@ def handle_add_group(text, dm_channel_id, private=False):
         # 3. Validate that the parsed JSON is actually a dictionary
         if not isinstance(new_groups_dict, dict):
             raise ValueError("Input must be a JSON object (dictionary).")
-        for key, list in new_groups_dict.copy().items():
-            print(f"list {list}")
-            for id in list.copy():
-                print(f"id {id}")
+        for key, channel_list in new_groups_dict.copy().items():
+            print(f"list {channel_list}")
+            for channel_id in channel_list.copy():
+                print(f"id {channel_id}")
                 try:
-                    driver.channels.get_channel(id)
+                    driver.channels.get_channel(channel_id)
                 except Exception:
-                    list.remove(id)
-                    print(f"popped {id}")
-            if len(list) == 0:
+                    channel_list.remove(channel_id)
+                    print(f"popped {channel_id}")
+            if len(channel_list) == 0:
                 new_groups_dict.pop(key)
                 print(f"removed {key}")
                 print(f"dict: {new_groups_dict}")
