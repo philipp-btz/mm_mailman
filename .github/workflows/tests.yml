@@ -8,7 +8,7 @@ on:
 
 jobs:
   test:
-    runs-on: python:3.12.13-slim
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
@@ -24,6 +24,10 @@ jobs:
           python -m pip install --upgrade pip
           # Add pytest if you haven't already
           pip install uv
+
+      - name: uv sync
+        run: uv sync
+
 
       - name: Run pytest
         run: uv run --module pytest -vv
@@ -57,7 +61,7 @@ jobs:
           COMMIT_URL="${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}"
           COMMIT_MSG=$(git log -1 --pretty=format:'%s' ${{ github.sha }} | sed 's/"/\\"/g')
 
-          python3 ./tests/success_message.py \
+          uv run ./tests/success_message.py \
             "${{ secrets.MATTERMOST_URL }}" \
             "${{ secrets.MATTERMOST_TOKEN }}" \
             "$TEAM_NAME" \
