@@ -1,32 +1,31 @@
+import logging
 from config import MATTERMOST_URL, BOT_TOKEN, TEAM_NAME, WHITELIST, CHANNEL_GROUPS
 from state import bot_info
 from mattermostdriver import Driver
 
 # Define driver as a global variable, but do not initialize it yet.
 driver = Driver(
-        {"url": MATTERMOST_URL, "token": BOT_TOKEN, "scheme": "https", "port": 443}
-    )
+    {"url": MATTERMOST_URL, "token": BOT_TOKEN, "scheme": "https", "port": 443}
+)
+
 
 def initialize_driver():
     """Initializes the Mattermost driver, logs the bot in, and fetches essential IDs."""
-    print("Connecting to Mattermost...")
-
-
-
+    logging.info("Connecting to Mattermost...")
     driver.login()
     bot_info["bot_id"] = driver.users.get_user("me")["id"]
     bot_info["bot_username"] = driver.users.get_user("me")["username"]
 
     try:
         bot_info["team_id"] = driver.teams.get_team_by_name(TEAM_NAME)["id"]
-        print(
+        logging.info(
             f"Bot connected. Bot ID: {bot_info['bot_id']} | Team ID: {bot_info['team_id']}"
         )
     except Exception as e:
-        print(
+        logging.critical(
             f"ERROR: Could not find team '{TEAM_NAME}'. Please check TEAM_NAME in your .env file."
         )
-        print(f"Details: {e}")
+        logging.critical(f"Details: {e}")
         exit()
 
 
@@ -34,6 +33,7 @@ def resolve_targets(requested_inputs):
     """
     Resolves user inputs (channel names, IDs, or groups) into a list of valid channel IDs and names.
     """
+    logging.info(f"Resolving targets for inputs: {requested_inputs}")
     valid_ids = set()
     invalid_inputs = set()
 
@@ -44,6 +44,7 @@ def resolve_targets(requested_inputs):
         clean_item = item.strip().lower().strip("#")
         if clean_item in CHANNEL_GROUPS:
             group_channel_ids.update(CHANNEL_GROUPS[clean_item])
+            logging.info(f"Resolved group '{clean_item}' to IDs: {CHANNEL_GROUPS[clean_item]}")
         else:
             direct_inputs.add(clean_item)
 
@@ -53,13 +54,17 @@ def resolve_targets(requested_inputs):
         try:
             channel = driver.channels.get_channel_by_name(bot_info["team_id"], target)
             channel_id = channel["id"]
+            logging.info(f"Resolved channel name '{target}' to ID: {channel_id}")
         except Exception:
             channel_id = target
+            logging.info(f"Could not resolve '{target}' as a name, treating as ID.")
 
         if channel_id in WHITELIST:
             valid_ids.add(channel_id)
+            logging.info(f"Channel ID '{channel_id}' is in the whitelist.")
         else:
             invalid_inputs.add(target)
+            logging.warning(f"Channel '{target}' (resolved to {channel_id}) is not in the whitelist.")
 
     valid_names = []
     for cid in valid_ids:
@@ -68,5 +73,9 @@ def resolve_targets(requested_inputs):
             valid_names.append(channel_info["display_name"])
         except Exception:
             valid_names.append(cid)
+            logging.warning(f"Could not get display name for channel ID: {cid}")
 
+    logging.info(f"Resolved valid IDs: {list(valid_ids)}")
+    logging.info(f"Resolved valid names: {valid_names}")
+    logging.info(f"Unresolved/invalid inputs: {list(invalid_inputs)}")
     return list(valid_ids), valid_names, list(invalid_inputs)

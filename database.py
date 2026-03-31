@@ -1,5 +1,6 @@
 import sqlite3
 import json
+import logging
 import threading
 
 # Use a thread-local connection to ensure thread safety
@@ -9,6 +10,7 @@ db_connection = threading.local()
 def get_db_connection():
     """Opens a new database connection if one is not already open for the current thread."""
     if not hasattr(db_connection, "conn") or db_connection.conn is None:
+        logging.info("Creating new database connection for thread.")
         db_connection.conn = sqlite3.connect(
             "broadcast_log.db", check_same_thread=False
         )
@@ -37,12 +39,13 @@ def initialize_database():
         cursor.execute("PRAGMA table_info(broadcasts)")
         columns = [column[1] for column in cursor.fetchall()]
         if "file_ids" not in columns:
+            logging.info("Adding 'file_ids' column to 'broadcasts' table.")
             cursor.execute("ALTER TABLE broadcasts ADD COLUMN file_ids TEXT")
 
         conn.commit()
-        print("Database initialized successfully.")
+        logging.info("Database initialized successfully.")
     except sqlite3.Error as e:
-        print(f"Database error during initialization: {e}")
+        logging.error(f"Database error during initialization: {e}")
 
 
 def log_broadcast(sender_name, message_content, target_channels, file_ids=None):
@@ -59,12 +62,14 @@ def log_broadcast(sender_name, message_content, target_channels, file_ids=None):
             (sender_name, message_content, channels_json, files_json),
         )
         conn.commit()
+        logging.info(f"Logged broadcast from {sender_name} to database.")
     except sqlite3.Error as e:
-        print(f"Failed to log broadcast to database: {e}")
+        logging.error(f"Failed to log broadcast to database: {e}")
 
 
 def close_db_connection():
     """Closes the database connection for the current thread."""
     if hasattr(db_connection, "conn") and db_connection.conn is not None:
+        logging.info("Closing database connection for thread.")
         db_connection.conn.close()
         db_connection.conn = None

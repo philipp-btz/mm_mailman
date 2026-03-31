@@ -1,6 +1,9 @@
 import os
 import json
 from dotenv import load_dotenv
+import logging
+from logging.handlers import RotatingFileHandler
+
 
 load_dotenv()
 
@@ -9,6 +12,12 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 TEAM_NAME = os.getenv("TEAM_NAME")
 SESSION_TIMEOUT_SECONDS = int(os.getenv("SESSION_TIMEOUT_SECONDS", 300))
 CLEANUP_INTERVAL_SECONDS = int(os.getenv("CLEANUP_INTERVAL_SECONDS", 60))
+
+# Logging
+DEBUG_LEVEL = os.getenv("DEBUG_LEVEL", "INFO")
+LOG_FILE = os.getenv("LOG_FILE", "logs/bot.log")
+
+
 
 # Load channel definitions
 with open("channels.json", "r") as f:
@@ -34,3 +43,41 @@ HELP_MESSAGE: str = (
             '!add_group <json dict> : add public group(s) scheme: {"name1" : ["id1", "id2", ...], "name2" : ["id1", "id2", ...]}\n'
             "!add_private_group <json dict> : add private group(s) scheme: same as for public groups"
         )
+
+
+
+
+
+def _logging_setup():
+    if not os.path.exists(LOG_FILE):
+        os.makedirs(os.path.dirname(LOG_FILE))
+
+    # --- Logging Setup ---
+    log_file = LOG_FILE
+    max_log_size = 100 * 1024 * 1024  # 100 MB
+    backup_count = 5
+
+    # Get the root logger
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+
+    # Create a rotating file handler
+    file_handler = RotatingFileHandler(
+    log_file, maxBytes=max_log_size, backupCount=backup_count
+    )
+    file_handler.setLevel(logging.INFO)
+
+    # Create a console handler
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+
+    # Create a formatter and set it for both handlers
+    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+    file_handler.setFormatter(formatter)
+    console_handler.setFormatter(formatter)
+
+    # Add the handlers to the logger
+    logger.addHandler(file_handler)
+    logger.addHandler(console_handler)
+
+_logging_setup()
