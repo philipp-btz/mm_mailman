@@ -27,10 +27,12 @@ def handle_channels_command(dm_channel_id):
     lines = []
     try:
         mm_teams = driver.teams.get_user_teams("me")
+        logging.debug(f"Retrieved {len(mm_teams)} teams for bot")
         # 2. Iterate through teams and fetch the associated channels
         for team in mm_teams:
             channels = driver.channels.get_channels_for_user("me", team["id"])
-            for channel in channels[:10:]:
+            logging.debug(f"Retrieved {len(channels)} channels for team {team['display_name']}")
+            for channel in channels:
                 # display_name is the UI name, name is the system URL name
                 if channel["team_id"]:
                     team_name = driver.teams.get_team(channel["team_id"]).get(
@@ -38,7 +40,7 @@ def handle_channels_command(dm_channel_id):
                     )
 
                     lines.append(
-                        f"- {channel['display_name']} ({channel['name']}) | ID: {channel['id']} Team name: {team_name} \n "
+                        f"- `{channel['display_name']}` ({channel['name']}) | ID: `{channel['id']}` Team name: {team_name} \n "
                     )
     except Exception as e:
         logging.error(f"Error fetching channels: {e}")
