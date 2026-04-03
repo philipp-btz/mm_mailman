@@ -247,7 +247,12 @@ def handle_confirmation(user_id, session, text, sender_name, dm_channel_id):
         driver.posts.create_post(
             {
                 "channel_id": "d7up7w3rd7bmmcfrkrj4ujk5ec",
-                "message": f"Sender *{sender_name}* sent a broadcast to channels: \n {session['valid_names']} \n with message:  \n  \n{session['message']}  \n  \n  \nand files: {file_ids}",
+                "message": (
+                    f"Sender *{sender_name}* sent a broadcast. "
+                    f"Timestamp (UTC): {time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())}. "
+                    f"Target channel count: {len(session.get('valid_names', []))}. "
+                    f"Attached file count: {len(file_ids)}."
+                ),
             }
         )
 
