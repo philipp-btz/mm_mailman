@@ -3,6 +3,7 @@ import logging
 import time
 
 from scripts.config import (
+    BOT_LOG_CHANNEL_ID,
     CHANNELS_JSON_PATH,
     PRIVATE_CHANNEL_GROUPS,
     VISIBLE_CHANNEL_GROUPS,
@@ -29,7 +30,8 @@ def handle_id_lookup(channel_name, dm_channel_id):
 
 def handle_channels_command(dm_channel_id):
     logging.info("Handling !channels command.")
-    lines = []
+    lines = ["| display_name | name  | ID | team_name |",
+             "| :------------ |:---------------| :-----| :-----|"]
     try:
         mm_teams = driver.teams.get_user_teams("me")
         logging.debug(f"Retrieved {len(mm_teams)} teams for bot")
@@ -45,7 +47,7 @@ def handle_channels_command(dm_channel_id):
                     )
 
                     lines.append(
-                        f"- `{channel['display_name']}` ({channel['name']}) | ID: `{channel['id']}` Team name: {team_name} \n "
+                        f"| `{channel['display_name']}` | {channel['name']} | `{channel['id']}` | {team_name} | "
                     )
     except Exception as e:
         logging.error(f"Error fetching channels: {e}")
@@ -198,7 +200,7 @@ def handle_confirmation(user_id, session, text, sender_name, dm_channel_id):
             except Exception as e:
                 logging.error(f"Failed to fetch file {original_id}: {e}")
         logging.info(f"Files to upload: {list(files.keys())}")
-        file_ids = []
+        all_file_ids = []
         for channel_id in session["target_ids"]:
             file_ids = []
             # upload file to channel:
@@ -211,6 +213,7 @@ def handle_confirmation(user_id, session, text, sender_name, dm_channel_id):
                     file_ids.append(file_info["file_infos"][0]["id"])
                 except Exception as e:
                     logging.error(f"Failed to upload file to {channel_id}: {e}")
+            all_file_ids.extend(file_ids)
             try:
                 post_options: dict[str, str | list[str]] = {
                     "channel_id": channel_id,
@@ -223,13 +226,15 @@ def handle_confirmation(user_id, session, text, sender_name, dm_channel_id):
             except Exception as e:
                 logging.error(f"Failed to post to {channel_id}: {e}")
 
+        # Log the broadcast to DB
         log_broadcast(
             sender_name=sender_name,
             message_content=session["message"],
             target_channels=session["valid_names"],
-            file_ids=file_ids,
+            file_ids=all_file_ids,
         )
 
+        # Send User confirmation Message
         driver.posts.create_post(
             {
                 "channel_id": dm_channel_id,
@@ -239,6 +244,20 @@ def handle_confirmation(user_id, session, text, sender_name, dm_channel_id):
                 "If not, just do nothing :feuervoigl:",
             }
         )
+
+        # Send metadata-only audit post to the configured bot log channel (if set)
+        if BOT_LOG_CHANNEL_ID:
+            driver.posts.create_post(
+                {
+                    "channel_id": BOT_LOG_CHANNEL_ID,
+                    "message": (
+                        f"Sender *{sender_name}* sent a broadcast. "
+                        f"Timestamp (UTC): {time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())}. "
+                        f"Target channel count: {len(session.get('valid_names', []))}. "
+                        f"Attached file count: {len(all_file_ids)}."
+                    ),
+                }
+            )
 
     elif text.lower() == "no":
         logging.info(f"User {sender_name} canceled broadcast.")

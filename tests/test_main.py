@@ -7,6 +7,7 @@ import json
 import unittest
 from unittest.mock import MagicMock, mock_open, patch
 
+import scripts.config as config
 from main import message_handler
 from scripts.state import known_users, sessions
 
@@ -75,7 +76,7 @@ class TestBot(unittest.TestCase):
         mock_driver.teams.get_team.return_value = {"display_name": "Team 1"}
         message = self.create_message("!channels")
         asyncio.run(message_handler(message))
-        expected_message = "- `Channel 1` (channel-1) | ID: `channel_id_1` Team name: Team 1 \n "
+        expected_message = "| display_name | name  | ID | team_name |\n| :------------ |:---------------| :-----| :-----|\n| `Channel 1` | channel-1 | `channel_id_1` | Team 1 | "
         mock_driver.posts.create_post.assert_called_with(
             {
                 "channel_id": "dm_channel_id_1",
@@ -161,9 +162,19 @@ class TestBot(unittest.TestCase):
         mock_driver.posts.create_post.assert_any_call(
             {"channel_id": "target_id_1", "message": broadcast_message, "file_ids": []}
         )
-        self.assertIn(
-            "Broadcast sent successfully",
-            mock_driver.posts.create_post.call_args[0][0]["message"],
+        self.assertTrue(
+            any(
+                call.args[0].get("channel_id") == "dm_channel_id_1"
+                and "Broadcast sent successfully" in call.args[0].get("message", "")
+                for call in mock_driver.posts.create_post.call_args_list
+            )
+        )
+        self.assertTrue(
+            any(
+                call.args[0].get("channel_id") == config.BOT_LOG_CHANNEL_ID
+                and "Sender *testuser* sent a broadcast" in call.args[0].get("message", "")
+                for call in mock_driver.posts.create_post.call_args_list
+            )
         )
         mock_log.assert_called_once()
 
