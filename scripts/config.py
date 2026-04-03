@@ -1,15 +1,12 @@
 import os
 import json
 from pathlib import Path
-from dotenv import load_dotenv
 import logging
 from logging.handlers import RotatingFileHandler
 
 
 # Base directory for the project
 BASE_DIR = Path(__file__).resolve().parent.parent
-
-load_dotenv(BASE_DIR / ".env")
 
 # These Environment Variables MUST be set.
 # the Code will fail if they are not set.
