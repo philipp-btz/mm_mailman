@@ -161,9 +161,19 @@ class TestBot(unittest.TestCase):
         mock_driver.posts.create_post.assert_any_call(
             {"channel_id": "target_id_1", "message": broadcast_message, "file_ids": []}
         )
-        self.assertIn(
-            "Broadcast sent successfully",
-            mock_driver.posts.create_post.call_args[0][0]["message"],
+        self.assertTrue(
+            any(
+                call.args[0].get("channel_id") == "dm_channel_id_1"
+                and "Broadcast sent successfully" in call.args[0].get("message", "")
+                for call in mock_driver.posts.create_post.call_args_list
+            )
+        )
+        self.assertTrue(
+            any(
+                call.args[0].get("channel_id") == "d7up7w3rd7bmmcfrkrj4ujk5ec"
+                and "Sender *testuser* sent a broadcast" in call.args[0].get("message", "")
+                for call in mock_driver.posts.create_post.call_args_list
+            )
         )
         mock_log.assert_called_once()
 
