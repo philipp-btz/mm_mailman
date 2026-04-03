@@ -1,27 +1,36 @@
 import os
 import json
-from dotenv import load_dotenv
+from pathlib import Path
 import logging
 from logging.handlers import RotatingFileHandler
 
 
-load_dotenv()
+# Base directory for the project
+BASE_DIR = Path(__file__).resolve().parent.parent
 
-MATTERMOST_URL = os.getenv("MATTERMOST_URL")
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-TEAM_NAME = os.getenv("TEAM_NAME")
+# These Environment Variables MUST be set.
+# the Code will fail if they are not set.
+# For more info --> README.md
+MATTERMOST_URL = os.environ["MATTERMOST_URL"]
+BOT_TOKEN = os.environ["BOT_TOKEN"]
+TEAM_NAME = os.environ["TEAM_NAME"]
+
+
+# These Env Variables are optional:
+# Sessions
 SESSION_TIMEOUT_SECONDS = int(os.getenv("SESSION_TIMEOUT_SECONDS", 300))
 CLEANUP_INTERVAL_SECONDS = int(os.getenv("CLEANUP_INTERVAL_SECONDS", 60))
-
 # Logging
 LOGGING_LEVEL = os.getenv("LOGGING_LEVEL", "DEBUG")
 CONSOLE_LOGGING_LEVEL = os.getenv("CONSOLE_LOGGING_LEVEL", "WARNING")
-LOG_FILE = os.getenv("LOG_FILE", "logs/bot.log")
+LOG_FILE = os.getenv("LOG_FILE", str(BASE_DIR / "logs" / "bot.log"))
 
-
+# Paths for JSON and Database files
+CHANNELS_JSON_PATH = Path(os.getenv("CHANNELS_JSON_PATH", str(BASE_DIR / "channels.json")))
+DB_PATH = Path(os.getenv("DB_PATH", str(BASE_DIR / "broadcast_log.db")))
 
 # Load channel definitions
-with open("channels.json", "r") as f:
+with open(CHANNELS_JSON_PATH, "r") as f:
     channel_data = json.load(f)
 
 # Public groups to be shown to the user

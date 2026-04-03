@@ -1,3 +1,7 @@
+if __name__ == "__main__":
+    from dotenv import load_dotenv
+    load_dotenv(".env")
+
 import asyncio
 import json
 import logging
@@ -12,7 +16,7 @@ from scripts.mattermost import driver, initialize_driver
 from scripts.patches import apply_ssl_patch
 from scripts.state import bot_info, known_users, sessions
 
-
+#TODO add standard broadcast channel every broadcast the bot emits gets send to, too
 
 # --- Main WebSocket Event Handler ---
 
@@ -191,4 +195,6 @@ def main():
 
 
 if __name__ == "__main__":
+    from dotenv import load_dotenv
+    load_dotenv(config.BASE_DIR / ".env")
     main()
