@@ -22,7 +22,7 @@ import time
 from pathlib import Path
 from typing import Callable
 
-from mmbot_framework import BaseBot, ParsedMessage
+from mmbot_framework import BaseBot, ParsedMessage, Session
 
 from config import PostBotConfig
 from database import close_db_connection, initialize_database, log_broadcast
@@ -191,6 +191,10 @@ class PostBot(BaseBot):
             # Collect sessions that have expired and have a DM channel to
             # notify.  We iterate a snapshot (list) to avoid mutating the dict
             # during iteration.
+            # TODO: Replace with a framework method once SessionManager exposes
+            # pop_expired() → list[Session]. Direct access to _sessions is
+            # required here because purge_expired() does not return the removed
+            # sessions, so we cannot notify users after the fact.
             expired = [
                 s
                 for s in list(self.sessions._sessions.values())
@@ -439,7 +443,6 @@ class PostBot(BaseBot):
         Args:
             msg: The message that identified this user as new.
         """
-        self._known_users.add(msg.sender_id)
         self._post(
             msg.channel_id,
             "👋 **Welcome, I'm the Postbot**\n\n"
@@ -449,6 +452,7 @@ class PostBot(BaseBot):
             "Your message will *not* be sent until you confirm.\n\n"
             "**TYPE YOUR MESSAGE AND/OR ATTACH FILES NOW:**",
         )
+        self._known_users.add(msg.sender_id)
 
     async def _handle_new_session(self, msg: ParsedMessage) -> None:
         """Capture the user's broadcast content and ask for target channels.
@@ -509,7 +513,7 @@ class PostBot(BaseBot):
             + "\n".join(allowed_channels),
         )
 
-    async def _handle_channel_selection(self, session, msg: ParsedMessage) -> None:
+    async def _handle_channel_selection(self, session: Session, msg: ParsedMessage) -> None:
         """Validate the user's target selection and show a confirmation preview.
 
         Updates the session state to ``CONFIRMATION`` on success.  If no valid
@@ -561,7 +565,7 @@ class PostBot(BaseBot):
             + "\n\nReply with **yes** to send or **no** to cancel.",
         )
 
-    async def _handle_confirmation(self, session, msg: ParsedMessage) -> None:
+    async def _handle_confirmation(self, session: Session, msg: ParsedMessage) -> None:
         """Handle the user's final yes/no confirmation.
 
         - ``yes``: relay message and files to all target channels, log to DB,
@@ -593,7 +597,7 @@ class PostBot(BaseBot):
         self.sessions.clear(msg.sender_id)
         logger.info(f"Session for @{msg.sender_name} cleared.")
 
-    async def _send_broadcast(self, session, msg: ParsedMessage) -> None:
+    async def _send_broadcast(self, session: Session, msg: ParsedMessage) -> None:
         """Relay the broadcast message and files to all selected target channels.
 
         For each target channel:
