@@ -41,9 +41,6 @@ def initialize_database(db_path: Path) -> None:
         conn = _get_connection()
         cursor = conn.cursor()
 
-        cursor.execute("PRAGMA auto_vacuum = FULL;")
-        cursor.execute("VACUUM;")
-
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS broadcasts (
                 id               INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -75,6 +72,7 @@ def initialize_database(db_path: Path) -> None:
         logger.info(f"Database initialised at {_db_path}.")
     except sqlite3.Error as exc:
         logger.error(f"Database initialisation error: {exc}")
+        raise
 
 
 def log_broadcast(
