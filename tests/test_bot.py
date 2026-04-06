@@ -218,12 +218,19 @@ class TestHandleAddGroup:
         assert "NewPrivate" in bot._private_groups
 
     def test_add_group_payload_parsing_no_lstrip_bug(self, bot: PostBot, make_msg):
-        """Verify that JSON payload is parsed correctly without character-stripping bug."""
+        """Verify that JSON payload is parsed correctly without character-stripping bug.
+
+        The old code used lstrip("!_add_group") which strips individual characters
+        {!, _, a, d, g, r, o, u, p} from the left. A group name starting with any of
+        these chars (like "purple_group" which starts with 'p') would be mangled if the
+        lstrip was applied to the group name. The fix uses text[len("!add_group"):]
+        which removes exactly the trigger prefix, preserving all group names.
+        """
         bot.driver.channels.get_channel.return_value = {"id": "ch_id_1"}
         asyncio.run(
-            bot._handle_add_group(make_msg(text='!add_group {"G": ["ch_id_1"]}'))
+            bot._handle_add_group(make_msg(text='!add_group {"purple_group": ["ch_id_1"]}'))
         )
-        assert "G" in bot._visible_groups
+        assert "purple_group" in bot._visible_groups
 
 
 # ---------------------------------------------------------------------------
