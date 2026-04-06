@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
 from config import PostBotConfig
 from mmbot_framework import ConfigError
@@ -53,12 +54,12 @@ def test_console_log_level_uppercased():
 
 
 def test_console_log_level_invalid():
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         PostBotConfig(url="mm.example.com", token="tok", team_name="myteam", console_log_level="VERBOSE")
 
 
 def test_invalid_port():
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         PostBotConfig(url="mm.example.com", token="tok", team_name="myteam", port=99999)
 
 
