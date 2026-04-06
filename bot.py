@@ -250,6 +250,7 @@ class PostBot(BaseBot):
                     logger.info(
                         f"Sent expiry notice to user {session.sender_id!r}."
                     )
+                    self._known_users.remove(session.sender_id) # remove user from known users once session ends. this is a workaround
                 except Exception as exc:
                     logger.error(
                         f"Failed to send expiry notice to user "
@@ -738,7 +739,7 @@ class PostBot(BaseBot):
             "Thank you for using the Broadcast Bot!\n\n\n"
             "**If you want to send another broadcast, SEND THE MESSAGE "
             "AND/OR ATTACH FILES NOW:**\n"
-            "If not, just do nothing :feuervoigl:",
+            "If not, just do nothing. The session will stop automatically :feuervoigl:",
         )
 
     # ── Internal helpers ──────────────────────────────────────────────────────
