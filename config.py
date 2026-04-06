@@ -36,6 +36,9 @@ class PostBotConfig(BotConfig):
     db_path: Path = Path("broadcast_log.db")
     console_log_level: str = "WARNING"
 
+    # To add a new field, add it here e.g.
+    # new_field: str = "default_value"
+
     @field_validator("console_log_level")
     @classmethod
     def _validate_console_log_level(cls, value: str) -> str:
