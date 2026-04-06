@@ -1,13 +1,8 @@
 import json
 import sqlite3
-import sys
-import os
 from pathlib import Path
 
 import pytest
-
-# Ensure the postbot package root is on the path so `import database` works.
-sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import database
 from database import (
