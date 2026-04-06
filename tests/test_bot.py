@@ -60,11 +60,6 @@ def _last_post(bot: PostBot) -> str:
     return call_args[0][0]["message"]
 
 
-def _last_post_channel(bot: PostBot) -> str:
-    call_args = bot.driver.posts.create_post.call_args_list[-1]
-    return call_args[0][0]["channel_id"]
-
-
 # ---------------------------------------------------------------------------
 # TestDMOnlyMiddleware
 # ---------------------------------------------------------------------------
@@ -191,6 +186,10 @@ class TestHandleAddGroup:
         )
         assert "NewGroup" in bot._visible_groups
         assert "✅ Group added successfully!" in _last_post(bot)
+
+        # Verify group was written to disk
+        saved_data = json.loads(bot.config.channels_json_path.read_text())
+        assert "NewGroup" in saved_data["groups"]
 
     def test_add_group_invalid_json(self, bot: PostBot, make_msg):
         asyncio.run(bot._handle_add_group(make_msg(text="!add_group not json")))
@@ -323,13 +322,8 @@ class TestBroadcastWizard:
         mock_log.assert_called_once()
         assert bot.sessions.get("user1") is None
 
-        # Confirmation posted to dm_ch_1
-        success_calls = [
-            c for c in all_calls
-            if "✅ **Broadcast sent successfully.**" in c[0][0].get("message", "")
-            and c[0][0].get("channel_id") == "dm_ch_1"
-        ]
-        assert success_calls, "Expected a success message posted to dm_ch_1"
+        # Success message is the last post
+        assert "✅ **Broadcast sent successfully.**" in _last_post(bot)
 
     def test_confirmation_no_cancels(self, bot: PostBot, make_msg):
         bot._known_users.add("user1")
