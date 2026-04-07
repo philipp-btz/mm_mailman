@@ -170,6 +170,7 @@ class PostBot(BaseBot):
         """Close the SQLite connection on shutdown."""
         close_db_connection()
         logger.info("Database connection closed.")
+        return
 
     def _setup_logging(self) -> None:
         """Configure logging with separate levels for console and file output.
