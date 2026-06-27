@@ -1,3 +1,6 @@
+# This repo is archived. The up-to-date repo is [here](https://github.com/CollegiumAcademicum/mattermost_bots)
+
+
 # mm_mailman
 
 A Mattermost bot that relays messages to multiple channels via a guided two-step broadcast wizard. Users interact with the bot exclusively via direct messages.
